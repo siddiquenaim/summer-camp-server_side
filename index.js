@@ -52,6 +52,21 @@ async function run() {
       res.send(result);
     });
 
+    // admin api
+
+    app.patch("users/admin/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const updatedUser = {
+        $set: {
+          role: "admin",
+        },
+      };
+
+      const result = await userCollection.updateOne(query, updatedUser);
+      res.send(result);
+    });
+
     // instructor related api
     app.get("/all-instructors", async (req, res) => {
       const result = await instructorCollection.find().toArray();
