@@ -8,31 +8,83 @@ require("dotenv").config();
 app.use(cors());
 app.use(express.json());
 
-const instructors = require("./data/instructors.json");
-const classes = require("./data/classes.json");
+const { MongoClient, ServerApiVersion } = require("mongodb");
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.zilkyvq.mongodb.net/?retryWrites=true&w=majority`;
 
-app.get("/all-instructors", (req, res) => {
-  res.send(instructors);
+// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  },
 });
 
-app.get("/popular-classes", (req, res) => {
-  const sortedClasses = classes.sort(
-    (a, b) => b.numberOfStudents - a.numberOfStudents
-  );
+async function run() {
+  try {
+    // Connect the client to the server	(optional starting in v4.7)
+    // await client.connect();
 
-  const popularClasses = sortedClasses.slice(0, 6);
+    // collection
+    const instructorCollection = client
+      .db("summerCamp")
+      .collection("instructors");
+    const classCollection = client.db("summerCamp").collection("classes");
+    const selectedClassCollection = client
+      .db("summerCamp")
+      .collection("selectedClasses");
 
-  res.send(popularClasses);
-});
+    // instructor related api
+    app.get("/all-instructors", async (req, res) => {
+      const result = await instructorCollection.find().toArray();
+      res.send(result);
+    });
 
-app.get("/popular-instructors", (req, res) => {
-  const sortedInstructors = instructors.sort(
-    (a, b) => b.numberOfStudents - a.numberOfStudents
-  );
+    app.get("/popular-instructors", async (req, res) => {
+      const sortedInstructors = await instructorCollection
+        .find()
+        .sort({ numberOfStudents: -1 })
+        .limit(6)
+        .toArray();
 
-  const topInstructors = sortedInstructors.slice(0, 6);
-  res.send(topInstructors);
-});
+      res.send(sortedInstructors);
+    });
+
+    // classes related api
+    app.get("/all-classes", async (req, res) => {
+      const result = await classCollection.find().toArray();
+      res.send(result);
+    });
+
+    app.get("/popular-classes", async (req, res) => {
+      const sortedClasses = await classCollection
+        .find()
+        .sort({ numberOfStudents: -1 })
+        .limit(6)
+        .toArray();
+
+      res.send(sortedClasses);
+    });
+
+    // Selected class related api
+    app.post("/add-selected-class", async (req, res) => {
+      const selectedClass = req.body;
+      console.log(selectedClass);
+      const result = await selectedClassCollection.insertOne(selectedClass);
+      res.send(result);
+    });
+
+    // Send a ping to confirm a successful connection
+    await client.db("admin").command({ ping: 1 });
+    console.log(
+      "Pinged your deployment. You successfully connected to MongoDB!"
+    );
+  } finally {
+    // Ensures that the client will close when you finish/error
+    // await client.close();
+  }
+}
+run().catch(console.dir);
 
 app.get("/", (req, res) => {
   res.send("The server is running");
