@@ -8,7 +8,7 @@ require("dotenv").config();
 app.use(cors());
 app.use(express.json());
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.zilkyvq.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -33,6 +33,15 @@ async function run() {
     const selectedClassCollection = client
       .db("summerCamp")
       .collection("selectedClasses");
+    const userCollection = client.db("summerCamp").collection("users");
+
+    // users related api
+    app.post("/users", async (req, res) => {
+      const newUser = req.body;
+
+      const result = await userCollection.insertOne(newUser);
+      res.send(result);
+    });
 
     // instructor related api
     app.get("/all-instructors", async (req, res) => {
@@ -71,6 +80,24 @@ async function run() {
       const selectedClass = req.body;
       console.log(selectedClass);
       const result = await selectedClassCollection.insertOne(selectedClass);
+      res.send(result);
+    });
+
+    app.get("/all-selected-classes", async (req, res) => {
+      const email = req.query.email;
+      if (!email) {
+        return res.send([]);
+      }
+      const query = { email: email };
+      const result = await selectedClassCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    app.delete("/delete-a-class/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      console.log(query);
+      const result = await selectedClassCollection.deleteOne(query);
       res.send(result);
     });
 
