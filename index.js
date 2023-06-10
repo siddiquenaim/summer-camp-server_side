@@ -78,6 +78,32 @@ async function run() {
       next();
     };
 
+    // verify student middleware
+    const verifyStudent = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      if (user?.role !== "Student") {
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden access" });
+      }
+      next();
+    };
+
+    // verify admin middleware
+    const verifyInstructor = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      if (user?.role !== "Instructor") {
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden access" });
+      }
+      next();
+    };
+
     // users related api
     app.get("/users", verifyJWT, verifyAdmin, async (req, res) => {
       const result = await userCollection.find().toArray();
@@ -132,6 +158,20 @@ async function run() {
       res.send(result);
     });
 
+    // check student
+    app.get("/users/student/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+
+      if (req.decoded.email !== email) {
+        res.send({ student: false });
+      }
+
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      const result = { student: user?.role === "Student" };
+      res.send(result);
+    });
+
     // instructor related api
     app.patch("/users/instructor/:id", async (req, res) => {
       const id = req.params.id;
@@ -161,20 +201,60 @@ async function run() {
       res.send(sortedInstructors);
     });
 
+    // check instructor
+    app.get("/users/instructor/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+
+      if (req.decoded.email !== email) {
+        res.send({ instructor: false });
+      }
+
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      const result = { instructor: user?.role === "Instructor" };
+      res.send(result);
+    });
+
     // classes related api
     app.get("/all-classes", async (req, res) => {
-      const result = await classCollection.find().toArray();
+      const query = { status: "Approved" };
+      const result = await classCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // classes added my an instructor
+    app.get("/my-classes", verifyJWT, async (req, res) => {
+      const email = req.query.email;
+      if (!email) {
+        return res.send([]);
+      }
+
+      const decodedEmail = req.decoded.email;
+      if (email !== decodedEmail) {
+        res.status(403).send({ error: true, message: "forbidden access" });
+      }
+
+      const query = { instructorEmail: email };
+      const result = await classCollection.find(query).toArray();
       res.send(result);
     });
 
     app.get("/popular-classes", async (req, res) => {
+      const query = { status: "Approved" };
       const sortedClasses = await classCollection
-        .find()
+        .find(query)
         .sort({ numberOfStudents: -1 })
         .limit(6)
         .toArray();
 
       res.send(sortedClasses);
+    });
+
+    // Added class related api
+    app.post("/add-a-class", async (req, res) => {
+      const newClass = req.body;
+      const result = await classCollection.insertOne(newClass);
+      res.send(result);
     });
 
     // Selected class related api
@@ -197,7 +277,6 @@ async function run() {
 
     app.post("/add-selected-class", async (req, res) => {
       const selectedClass = req.body;
-      console.log(selectedClass);
       const result = await selectedClassCollection.insertOne(selectedClass);
       res.send(result);
     });
