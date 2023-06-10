@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 const app = express();
 const port = process.env.PORT || 5000;
 require("dotenv").config();
@@ -35,6 +36,16 @@ async function run() {
       .collection("selectedClasses");
     const userCollection = client.db("summerCamp").collection("users");
 
+    // jwt token related api
+    app.post("/jwt", (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "3h",
+      });
+
+      res.send({ token });
+    });
+
     // users related api
     app.get("/users", async (req, res) => {
       const result = await userCollection.find().toArray();
@@ -52,14 +63,21 @@ async function run() {
       res.send(result);
     });
 
+    app.delete("/delete-user/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await userCollection.deleteOne(query);
+      res.send(result);
+    });
+
     // admin api
 
-    app.patch("users/admin/:id", async (req, res) => {
+    app.patch("/users/admin/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const updatedUser = {
         $set: {
-          role: "admin",
+          role: "Admin",
         },
       };
 
@@ -68,6 +86,19 @@ async function run() {
     });
 
     // instructor related api
+    app.patch("/users/instructor/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const updatedUser = {
+        $set: {
+          role: "Instructor",
+        },
+      };
+
+      const result = await userCollection.updateOne(query, updatedUser);
+      res.send(result);
+    });
+
     app.get("/all-instructors", async (req, res) => {
       const result = await instructorCollection.find().toArray();
       res.send(result);
