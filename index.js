@@ -216,7 +216,46 @@ async function run() {
     });
 
     // classes related api
-    app.get("/all-classes", async (req, res) => {
+    app.get("/all-classes", verifyJWT, verifyAdmin, async (req, res) => {
+      const result = await classCollection.find().toArray();
+      res.send(result);
+    });
+
+    // approve a class api
+    app.patch("/approve-class/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedClass = {
+        $set: {
+          status: "Approved",
+        },
+      };
+      const result = await classCollection.updateOne(filter, updatedClass);
+      res.send(result);
+    });
+
+    app.patch("/deny-class/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedClass = {
+        $set: {
+          status: "Denied",
+        },
+      };
+      const result = await classCollection.updateOne(filter, updatedClass);
+      res.send(result);
+    });
+
+    //  single class information
+    app.get("/classes/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const query = { _id: new ObjectId(id) };
+      const result = await classCollection.findOne(query);
+      res.send(result);
+    });
+
+    app.get("/all-approved-classes", async (req, res) => {
       const query = { status: "Approved" };
       const result = await classCollection.find(query).toArray();
       res.send(result);
