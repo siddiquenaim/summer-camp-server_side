@@ -3,8 +3,8 @@ const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const app = express();
 const port = process.env.PORT || 5000;
-const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
 require("dotenv").config();
+const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
 
 // middleware
 app.use(cors());
@@ -47,14 +47,12 @@ async function run() {
     // await client.connect();
 
     // collection
-    const instructorCollection = client
-      .db("summerCamp")
-      .collection("instructors");
     const classCollection = client.db("summerCamp").collection("classes");
     const selectedClassCollection = client
       .db("summerCamp")
       .collection("selectedClasses");
     const userCollection = client.db("summerCamp").collection("users");
+    const paymentCollection = client.db("summerCamp").collection("payments");
 
     // jwt token related api
     app.post("/jwt", (req, res) => {
@@ -306,14 +304,14 @@ async function run() {
       res.send(sortedClasses);
     });
 
-    // Added class related api
+    // added class related api
     app.post("/add-a-class", async (req, res) => {
       const newClass = req.body;
       const result = await classCollection.insertOne(newClass);
       res.send(result);
     });
 
-    // Selected class related api
+    // selected class related api
 
     app.get("/all-selected-classes", verifyJWT, async (req, res) => {
       const email = req.query.email;
@@ -358,6 +356,32 @@ async function run() {
       res.send({
         clientSecret: paymentIntent.client_secret,
       });
+    });
+
+    // payment related api
+    app.post("/payments", verifyJWT, async (req, res) => {
+      const payment = req.body;
+      const result = await paymentCollection.insertOne(payment);
+      console.log(payment);
+
+      const query = { _id: new ObjectId(payment.class._id) };
+      const deleteResult = await selectedClassCollection.deleteOne(query);
+
+      res.send({ result, deleteResult });
+    });
+
+    app.patch("/update-card/:id", verifyJWT, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const updatedClass = {
+        $inc: {
+          totalStudents: 1,
+          availableSeats: -1,
+        },
+      };
+
+      const result = await classCollection.updateOne(query, updatedClass);
+      res.send(result);
     });
 
     // Send a ping to confirm a successful connection
