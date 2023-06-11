@@ -187,13 +187,15 @@ async function run() {
     });
 
     app.get("/all-instructors", async (req, res) => {
-      const result = await instructorCollection.find().toArray();
+      const query = { role: "Instructor" };
+      const result = await userCollection.find(query).toArray();
       res.send(result);
     });
 
     app.get("/popular-instructors", async (req, res) => {
-      const sortedInstructors = await instructorCollection
-        .find()
+      const query = { role: "Instructor" };
+      const sortedInstructors = await userCollection
+        .find(query)
         .sort({ numberOfStudents: -1 })
         .limit(6)
         .toArray();
@@ -249,7 +251,6 @@ async function run() {
     //  single class information
     app.get("/classes/:id", async (req, res) => {
       const id = req.params.id;
-      console.log(id);
       const query = { _id: new ObjectId(id) };
       const result = await classCollection.findOne(query);
       res.send(result);
@@ -258,6 +259,21 @@ async function run() {
     app.get("/all-approved-classes", async (req, res) => {
       const query = { status: "Approved" };
       const result = await classCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // add a feedback api
+    app.patch("/feedback/:id", async (req, res) => {
+      const id = req.params.id;
+      const { feedback } = req.body;
+      console.log(feedback);
+      const query = { _id: new ObjectId(id) };
+      const updatedClass = {
+        $set: {
+          feedback: feedback,
+        },
+      };
+      const result = await classCollection.updateOne(query, updatedClass);
       res.send(result);
     });
 
@@ -323,7 +339,7 @@ async function run() {
     app.delete("/delete-a-class/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
-      console.log(query);
+      // console.log(query);
       const result = await selectedClassCollection.deleteOne(query);
       res.send(result);
     });
