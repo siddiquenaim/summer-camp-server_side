@@ -324,6 +324,23 @@ async function run() {
       res.send(result);
     });
 
+    app.patch("/update-a-class/:id", async (req, res) => {
+      const id = req.params.id;
+      const body = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updatedClass = {
+        $set: {
+          name: body.name,
+          price: body.price,
+          image: body.image,
+          availableSeats: body.availableSeats,
+        },
+      };
+
+      result = await classCollection.updateOne(filter, updatedClass);
+      res.send(result);
+    });
+
     // selected class related api
 
     app.get("/all-selected-classes", verifyJWT, async (req, res) => {
