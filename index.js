@@ -53,7 +53,6 @@ async function run() {
       .collection("selectedClasses");
     const userCollection = client.db("summerCamp").collection("users");
     const paymentCollection = client.db("summerCamp").collection("payments");
-    const enrolledCollection = client.db("summerCamp").collection("enrolls");
 
     // jwt token related api
     app.post("/jwt", (req, res) => {
@@ -419,7 +418,10 @@ async function run() {
     app.get("/payments/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
-      const result = await paymentCollection.find(query).toArray();
+      const result = await paymentCollection
+        .find(query)
+        .sort({ date: -1 })
+        .toArray();
       res.send(result);
     });
 
