@@ -53,6 +53,7 @@ async function run() {
       .collection("selectedClasses");
     const userCollection = client.db("summerCamp").collection("users");
     const paymentCollection = client.db("summerCamp").collection("payments");
+    const enrolledCollection = client.db("summerCamp").collection("enrolls");
 
     // jwt token related api
     app.post("/jwt", (req, res) => {
@@ -148,7 +149,7 @@ async function run() {
       const email = req.params.email;
 
       if (req.decoded.email !== email) {
-        res.send({ admin: false });
+        return res.send({ admin: false });
       }
 
       const query = { email: email };
@@ -162,7 +163,7 @@ async function run() {
       const email = req.params.email;
 
       if (req.decoded.email !== email) {
-        res.send({ student: false });
+        return res.send({ student: false });
       }
 
       const query = { email: email };
@@ -207,12 +208,22 @@ async function run() {
       const email = req.params.email;
 
       if (req.decoded.email !== email) {
-        res.send({ instructor: false });
+        return res.send({ instructor: false });
       }
 
       const query = { email: email };
       const user = await userCollection.findOne(query);
       const result = { instructor: user?.role === "Instructor" };
+      res.send(result);
+    });
+
+    app.get("/classes/instructor/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = {
+        instructorEmail: email,
+        status: "Approved",
+      };
+      const result = await classCollection.find(query).toArray();
       res.send(result);
     });
 
@@ -285,7 +296,9 @@ async function run() {
 
       const decodedEmail = req.decoded.email;
       if (email !== decodedEmail) {
-        res.status(403).send({ error: true, message: "forbidden access" });
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden access" });
       }
 
       const query = { instructorEmail: email };
@@ -321,7 +334,9 @@ async function run() {
 
       const decodedEmail = req.decoded.email;
       if (email !== decodedEmail) {
-        res.status(403).send({ error: true, message: "forbidden access" });
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden access" });
       }
 
       const query = { email: email };
@@ -381,6 +396,13 @@ async function run() {
       };
 
       const result = await classCollection.updateOne(query, updatedClass);
+      res.send(result);
+    });
+
+    app.get("/payments/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const result = await paymentCollection.find(query).toArray();
       res.send(result);
     });
 
