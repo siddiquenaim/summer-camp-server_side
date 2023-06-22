@@ -309,7 +309,7 @@ async function run() {
       const query = { status: "Approved" };
       const sortedClasses = await classCollection
         .find(query)
-        .sort({ numberOfStudents: -1 })
+        .sort({ totalStudents: -1 })
         .limit(6)
         .toArray();
 
