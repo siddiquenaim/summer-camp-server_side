@@ -53,6 +53,9 @@ async function run() {
       .collection("selectedClasses");
     const userCollection = client.db("summerCamp").collection("users");
     const paymentCollection = client.db("summerCamp").collection("payments");
+    const reviewCollection = client
+      .db("summerCamp")
+      .collection("clientReviews");
 
     // jwt token related api
     app.post("/jwt", (req, res) => {
@@ -223,6 +226,13 @@ async function run() {
         status: "Approved",
       };
       const result = await classCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    //homepage others
+    //client reviews - fetch
+    app.get("/client-reviews", async (req, res) => {
+      const result = await reviewCollection.find().toArray();
       res.send(result);
     });
 
